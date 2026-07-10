@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نقطة تفتيش | بحث اللوحات</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0A0A0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="بحث اللوحات">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0A0C;
+    --surface:#131317;
+    --surface-2:#1B1B21;
+    --border:#27272E;
+    --text:#F2F2F5;
+    --muted:#8B8B96;
+    --accent:#6E56CF;
+    --accent-soft:rgba(110,86,207,0.14);
+    --danger:#F0453A;
+    --danger-soft:rgba(240,69,58,0.12);
+    --safe:#1FAE6E;
+    --safe-soft:rgba(31,174,110,0.13);
+    --plate-a:#ECEDEF;
+    --plate-b:#C7C9CE;
+    --radius-lg:16px;
+    --radius-md:12px;
+    --radius-sm:8px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--text);}
+  body{
+    font-family:'IBM Plex Sans Arabic', sans-serif;
+    display:flex; justify-content:center;
+    min-height:100vh;
+  }
+
+  .phone{
+    width:100%; max-width:420px; min-height:100vh;
+    background:var(--bg);
+    display:flex; flex-direction:column;
+    position:relative;
+  }
+
+  /* Header */
+  .topbar{
+    padding:20px 20px 18px;
+    border-bottom:1px solid var(--border);
+    background:var(--bg);
+    position:sticky; top:0; z-index:10;
+  }
+  .brand-row{
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+  }
+  .brand-mark{
+    width:32px; height:32px; border-radius:9px;
+    background:var(--accent-soft); border:1px solid rgba(110,86,207,0.35);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--accent); font-family:'Cairo'; font-weight:800; font-size:14px;
+    flex-shrink:0;
+  }
+  .brand-name{ font-family:'Cairo', sans-serif; font-weight:800; font-size:16px; color:var(--text); }
+  .status-pill{
+    display:flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted);
+    border:1px solid var(--border); border-radius:20px; padding:4px 10px;
+  }
+  .status-pill .dot{ width:5px; height:5px; border-radius:50%; background:var(--safe); }
+  .topbar .sub{ color:var(--muted); font-size:12.5px; margin-top:12px; line-height:1.6; }
+
+  /* Search row */
+  .search-wrap{ padding:16px 20px 4px; }
+  .search-box{
+    display:flex; align-items:center; gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:6px 8px 6px 14px;
+    transition: border-color .15s;
+  }
+  .search-box:focus-within{ border-color:var(--accent); }
+  .search-box input{
+    flex:1; background:transparent; border:none; outline:none;
+    color:var(--text); font-family:'IBM Plex Mono', monospace;
+    font-size:14.5px; direction:rtl;
+  }
+  .search-box input::placeholder{ color:var(--muted); font-family:'IBM Plex Sans Arabic', sans-serif;}
+
+  .mic-btn{
+    width:42px; height:42px; border-radius:var(--radius-sm);
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0;
+    transition: border-color .2s, background .2s, transform .1s;
+  }
+  .mic-btn:active{ transform:scale(0.94); }
+  .mic-btn svg{ width:18px; height:18px; stroke:var(--muted); transition: stroke .2s;}
+  .mic-btn.listening{
+    background: var(--accent);
+    border-color: var(--accent);
+    animation: pulse 1.6s infinite;
+  }
+  .mic-btn.listening svg{ stroke:#fff; }
+  @keyframes pulse{
+    0%{ box-shadow:0 0 0 0 rgba(110,86,207,0.35); }
+    70%{ box-shadow:0 0 0 10px rgba(110,86,207,0); }
+    100%{ box-shadow:0 0 0 0 rgba(110,86,207,0); }
+  }
+
+  .mic-status{
+    text-align:center; font-size:11.5px; color:var(--muted);
+    height:18px; margin-top:8px; font-family:'IBM Plex Mono', monospace;
+  }
+  .mic-status.active{ color:var(--accent); }
+
+  /* Alert banner */
+  #banner{
+    margin:12px 20px 0; border-radius:var(--radius-md);
+    padding:14px 16px; display:none;
+    align-items:center; gap:12px;
+    border:1px solid var(--border);
+    animation: slideIn .2s ease-out;
+  }
+  #banner.show{ display:flex; }
+  #banner.wanted{ background:var(--danger-soft); border-color:rgba(240,69,58,0.4); }
+  #banner.clear{ background:var(--safe-soft); border-color:rgba(31,174,110,0.4); }
+  #banner .icon{
+    width:34px; height:34px; border-radius:var(--radius-sm); flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+  }
+  #banner.wanted .icon{ background:var(--danger); }
+  #banner.clear .icon{ background:var(--safe); }
+  #banner .txt b{ display:block; font-family:'Cairo', sans-serif; font-weight:700; font-size:14px; }
+  #banner.wanted .txt b{ color:var(--danger); }
+  #banner.clear .txt b{ color:var(--safe); }
+  #banner .txt span{ color:var(--muted); font-size:12px; }
+  @keyframes slideIn{ from{ opacity:0; transform:translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+
+  .loc-action{
+    margin:10px 20px 0; display:flex; gap:8px;
+  }
+  .loc-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:10px 12px; color:var(--text); font-family:'IBM Plex Sans Arabic'; font-weight:600; font-size:12.5px;
+    cursor:pointer; transition: border-color .2s, background .2s;
+  }
+  .loc-btn:active{ transform:scale(0.98); }
+  .loc-btn.saved{ border-color:var(--safe); color:var(--safe); background:var(--safe-soft); }
+  .loc-status{ text-align:center; font-size:11px; color:var(--muted); margin-top:6px; font-family:'IBM Plex Mono', monospace; }
+
+  .car-loc{
+    margin-top:8px; padding-top:8px; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .car-loc a{
+    color:var(--accent); font-size:11px; text-decoration:none;
+    display:flex; align-items:center; gap:4px; font-family:'IBM Plex Mono', monospace;
+  }
+  .car-loc .remove-loc{
+    color:var(--muted); font-size:10.5px; background:none; border:none; cursor:pointer;
+    font-family:'IBM Plex Sans Arabic';
+  }
+
+  /* List */
+  .list{ padding:18px 20px 100px; display:flex; flex-direction:column; gap:10px; }
+  .count-row{
+    display:flex; justify-content:space-between; align-items:center;
+    color:var(--muted); font-size:11.5px; font-family:'IBM Plex Mono', monospace;
+    margin-bottom:4px;
+  }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+    padding:14px; display:flex; align-items:center; gap:14px;
+    position:relative; overflow:hidden;
+    transition: border-color .2s, opacity .2s;
+  }
+  .card.wanted{ border-color:rgba(240,69,58,0.3); }
+  .card.dim{ opacity:0.32; }
+  .card.hit{ border-color:var(--danger); }
+  .card.hit.clear-hit{ border-color:var(--safe); }
+
+  .plate{
+    flex-shrink:0; width:92px; height:50px; border-radius:6px;
+    background:linear-gradient(180deg, var(--plate-a), var(--plate-b));
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:1.5px solid #9DA0A6;
+  }
+  .plate .num{
+    font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:14px;
+    color:#17181B; letter-spacing:0.5px; direction:rtl;
+  }
+  .plate .country{
+    font-size:7.5px; color:#5B5E64; letter-spacing:1.5px; margin-top:2px; font-family:'IBM Plex Sans Arabic';
+  }
+
+  .info{ flex:1; min-width:0; }
+  .info .model{ font-family:'Cairo', sans-serif; font-weight:700; font-size:14px; color:var(--text); }
+  .info .owner{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .badge{
+    display:inline-flex; align-items:center; gap:5px;
+    margin-top:7px; font-size:10.5px; padding:3px 9px; border-radius:20px;
+    font-family:'IBM Plex Sans Arabic'; font-weight:600;
+  }
+  .badge.wanted{ background:var(--danger-soft); color:var(--danger); }
+  .badge.clear{ background:var(--safe-soft); color:var(--safe); }
+  .badge .dot{ width:5px; height:5px; border-radius:50%; background:currentColor; }
+
+  .empty{
+    text-align:center; color:var(--muted); padding:60px 20px; font-size:13px;
+  }
+
+  .hint{
+    position:sticky; bottom:0; padding:14px 20px 18px;
+    background:linear-gradient(0deg, var(--bg) 65%, transparent);
+    text-align:center; font-size:10.5px; color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="topbar">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div class="brand-name">بحث اللوحات</div>
+      </div>
+      <div class="status-pill"><span class="dot"></span> متصل</div>
+    </div>
+    <div class="sub">اضغط على المايك وقول رقم اللوحة، أو اكتبه يدويًا</div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="مثال: أ ب د ١٢٣٤ ..." dir="rtl" autocomplete="off">
+      <div class="mic-btn" id="micBtn" title="بحث صوتي">
+        <svg id="micIcon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </div>
+    </div>
+    <div class="mic-status" id="micStatus">اضغط للبحث الصوتي</div>
+  </div>
+
+  <div id="banner">
+    <div class="icon" id="bannerIcon">!</div>
+    <div class="txt" id="bannerTxt"><b>—</b><span>—</span></div>
+  </div>
+
+  <div class="loc-action" id="locAction" style="display:none">
+    <button class="loc-btn" id="locBtn">📍 إضافة موقع لهذه السيارة</button>
+  </div>
+  <div class="loc-status" id="locStatus"></div>
+
+  <div class="list">
+    <div class="count-row">
+      <span id="countLabel">عرض كل السيارات</span>
+      <span id="totalLabel"></span>
+    </div>
+    <div id="cardsWrap"></div>
+  </div>
+
+  <div class="hint">قاعدة بيانات تجريبية للعرض التوضيحي فقط — المواقع بتتحفظ على جهازك بس</div>
+</div>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+
+<script>
+const cars = [
+  { plate:"أ ب د ١٢٣٤", model:"تويوتا كورولا 2021", owner:"محمد سامي عبد الله", wanted:false },
+  { plate:"س ل م ٧٧٧٠", model:"هيونداي إلنترا 2019", owner:"غير مسجل", wanted:true, reason:"مطلوب على ذمة قضية مرورية" },
+  { plate:"ر ط ن ٤٥٦١", model:"نيسان صني 2018", owner:"أحمد فتحي", wanted:false },
+  { plate:"ط س ب ٩٩١٢", model:"شيفروليه أفيو 2020", owner:"غير مسجل", wanted:true, reason:"إبلاغ سرقة" },
+  { plate:"ك م ن ٣٣٢١", model:"كيا سيراتو 2022", owner:"ياسمين طارق", wanted:false },
+  { plate:"ع ف ق ٦٦٠٥", model:"هوندا سيفيك 2017", owner:"غير مسجل", wanted:true, reason:"مخالفات متراكمة" },
+  { plate:"ج د هـ ١٠٥٥", model:"سكودا أوكتافيا 2020", owner:"كريم منصور", wanted:false },
+  { plate:"و ز ح ٨٨٤٤", model:"بيجو 301 2019", owner:"سارة عادل", wanted:false },
+];
+
+const cardsWrap = document.getElementById('cardsWrap');
+const searchInput = document.getElementById('searchInput');
+const micBtn = document.getElementById('micBtn');
+const micStatus = document.getElementById('micStatus');
+const banner = document.getElementById('banner');
+const bannerIcon = document.getElementById('bannerIcon');
+const bannerTxt = document.getElementById('bannerTxt');
+const countLabel = document.getElementById('countLabel');
+const totalLabel = document.getElementById('totalLabel');
+const locAction = document.getElementById('locAction');
+const locBtn = document.getElementById('locBtn');
+const locStatus = document.getElementById('locStatus');
+
+totalLabel.textContent = cars.length + ' سيارة مسجّلة';
+
+let currentMatch = null; // آخر سيارة متطابقة مع البحث الحالي
+
+function normalize(str){
+  return (str||'')
+    .replace(/[\u064B-\u0652]/g,'')
+    .replace(/[إأآا]/g,'ا')
+    .replace(/ى/g,'ي')
+    .replace(/ة/g,'ه')
+    .replace(/[٠١٢٣٤٥٦٧٨٩]/g, d => "0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(d)])
+    .replace(/\s+/g,' ')
+    .trim()
+    .toLowerCase();
+}
+
+// ---------- تخزين المواقع محليًا على الجهاز ----------
+function loadLocations(){
+  try{ return JSON.parse(localStorage.getItem('plateLocations') || '{}'); }
+  catch(e){ return {}; }
+}
+function saveLocations(obj){
+  try{ localStorage.setItem('plateLocations', JSON.stringify(obj)); }catch(e){}
+}
+function locKey(plate){ return normalize(plate).replace(/\s/g,''); }
+
+function getLocationFor(plate){
+  const all = loadLocations();
+  return all[locKey(plate)] || null;
+}
+function setLocationFor(plate, data){
+  const all = loadLocations();
+  all[locKey(plate)] = data;
+  saveLocations(all);
+}
+function removeLocationFor(plate){
+  const all = loadLocations();
+  delete all[locKey(plate)];
+  saveLocations(all);
+}
+
+function renderCards(matchQuery){
+  cardsWrap.innerHTML = '';
+  const q = matchQuery ? normalize(matchQuery) : '';
+  let anyExactHit = null;
+
+  cars.forEach(car => {
+    const nPlate = normalize(car.plate);
+    const isMatch = q && nPlate.includes(q.replace(/\s/g,'')) || (q && nPlate.replace(/\s/g,'').includes(q.replace(/\s/g,'')));
+    if(isMatch && !anyExactHit) anyExactHit = car;
+
+    const card = document.createElement('div');
+    card.className = 'card' + (car.wanted ? ' wanted' : '') + (q && !isMatch ? ' dim' : '') + (isMatch ? (car.wanted ? ' hit' : ' hit clear-hit') : '');
+
+    const loc = getLocationFor(car.plate);
+    const locHtml = loc
+      ? `<div class="car-loc">
+           <a href="https://maps.google.com/?q=${loc.lat},${loc.lng}" target="_blank" rel="noopener">
+             📍 ${loc.label ? loc.label + ' — ' : ''}${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}
+           </a>
+           <button class="remove-loc" data-plate="${car.plate}">إزالة</button>
+         </div>`
+      : '';
+
+    card.innerHTML = `
+      <div class="plate">
+        <div class="num">${car.plate}</div>
+        <div class="country">مصر</div>
+      </div>
+      <div class="info">
+        <div class="model">${car.model}</div>
+        <div class="owner">${car.owner}</div>
+        <span class="badge ${car.wanted ? 'wanted' : 'clear'}">
+          <span class="dot"></span>${car.wanted ? 'مطلوبة' : 'غير مطلوبة'}
+        </span>
+        ${locHtml}
+      </div>
+    `;
+    cardsWrap.appendChild(card);
+  });
+
+  if(q){
+    countLabel.textContent = anyExactHit ? 'تم العثور على تطابق' : 'لا توجد نتائج مطابقة';
+    currentMatch = anyExactHit;
+    if(anyExactHit){
+      banner.classList.add('show');
+      if(anyExactHit.wanted){
+        banner.className = 'show wanted';
+        bannerIcon.textContent = '⚠';
+        bannerTxt.innerHTML = `<b>تنبيه: هذه اللوحة مطلوبة</b><span>${anyExactHit.reason || 'راجع الجهة المختصة'}</span>`;
+      } else {
+        banner.className = 'show clear';
+        bannerIcon.textContent = '✓';
+        bannerTxt.innerHTML = `<b>اللوحة غير مطلوبة</b><span>${anyExactHit.model} — ${anyExactHit.owner}</span>`;
+      }
+      locAction.style.display = 'flex';
+      const existingLoc = getLocationFor(anyExactHit.plate);
+      locBtn.textContent = existingLoc ? '📍 تحديث الموقع لهذه السيارة' : '📍 إضافة موقع لهذه السيارة';
+      locBtn.classList.toggle('saved', !!existingLoc);
+    } else {
+      banner.className = '';
+      locAction.style.display = 'none';
+      locStatus.textContent = '';
+    }
+  } else {
+    countLabel.textContent = 'عرض كل السيارات';
+    banner.className = '';
+    currentMatch = null;
+    locAction.style.display = 'none';
+    locStatus.textContent = '';
+  }
+
+  // ربط أزرار "إزالة" الموقع في كل الكروت
+  cardsWrap.querySelectorAll('.remove-loc').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      removeLocationFor(btn.dataset.plate);
+      renderCards(searchInput.value);
+    });
+  });
+}
+
+renderCards('');
+
+searchInput.addEventListener('input', e => renderCards(e.target.value));
+
+// ---------- زرار إضافة الموقع ----------
+locBtn.addEventListener('click', () => {
+  if(!currentMatch) return;
+  if(!('geolocation' in navigator)){
+    locStatus.textContent = 'الجهاز/المتصفح ده مش بيدعم تحديد الموقع';
+    return;
+  }
+  locStatus.textContent = '📡 بيحدد موقعك الحالي...';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const label = window.prompt('اسم/وصف اختياري للموقع (زي: كمين الطريق الدائري) — اتركه فاضي لو مش عايز', '');
+      setLocationFor(currentMatch.plate, {
+        lat: latitude,
+        lng: longitude,
+        label: (label || '').trim(),
+        timestamp: new Date().toISOString(),
+      });
+      locStatus.textContent = '✅ اتحفظ الموقع بنجاح';
+      renderCards(searchInput.value);
+    },
+    (err) => {
+      const reasons = {
+        1: 'الإذن مرفوض — سمح للمتصفح بالوصول لموقعك من الإعدادات',
+        2: 'مش قادر يحدد موقعك دلوقتي، جرب تاني',
+        3: 'استغرق وقت طويل، جرب تاني',
+      };
+      locStatus.textContent = reasons[err.code] || 'حصل خطأ في تحديد الموقع';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+// Voice search
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let listening = false;
+
+if(SpeechRecognition){
+  recognition = new SpeechRecognition();
+  recognition.lang = 'ar-EG';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    listening = true;
+    micBtn.classList.add('listening');
+    micStatus.textContent = '🎙 بيسمع دلوقتي... اتكلم';
+    micStatus.classList.add('active');
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    searchInput.value = transcript;
+    renderCards(transcript);
+    micStatus.textContent = 'تم التقاط: ' + transcript;
+  };
+
+  recognition.onerror = (event) => {
+    const reasons = {
+      'not-allowed': 'الإذن مرفوض — لازم تسمح للمتصفح باستخدام الميكروفون من الإعدادات',
+      'service-not-allowed': 'المتصفح رافض الخدمة — جرب تفتح الصفحة عبر رابط https وليس ملف على الجهاز',
+      'no-speech': 'ملقتش صوت، جرب تاني وقرّب من الميكروفون',
+      'audio-capture': 'مفيش ميكروفون متاح على الجهاز ده',
+      'network': 'مشكلة في الاتصال بالإنترنت أثناء التعرف على الصوت',
+    };
+    micStatus.textContent = reasons[event.error] || ('خطأ: ' + event.error);
+  };
+
+  recognition.onend = () => {
+    listening = false;
+    micBtn.classList.remove('listening');
+    micStatus.classList.remove('active');
+    if(!searchInput.value) micStatus.textContent = 'اضغط للبحث الصوتي';
+  };
+
+  micBtn.addEventListener('click', () => {
+    if(listening){ recognition.stop(); return; }
+    try{ recognition.start(); } catch(e){}
+  });
+} else {
+  micStatus.textContent = 'البحث الصوتي غير مدعوم في هذا المتصفح';
+  micBtn.style.opacity = '0.4';
+  micBtn.style.cursor = 'not-allowed';
+}
+</script>
+
+</body>
+</html>
